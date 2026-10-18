@@ -553,6 +553,32 @@ func (t *winTray) convertToSubMenu(menuItemId uint32) (windows.Handle, error) {
 func SetRemovalAllowed(allowed bool) {
 }
 
+// ShowNotification shows title and message in a balloon from the tray icon,
+// which Windows 10 and 11 present as a notification from the application and
+// dismiss on their own. Unlike a toast, it needs no AppUserModelID registered
+// with a Start menu shortcut. It fails while the icon is hidden or not yet
+// added, since a balloon comes from the icon.
+func ShowNotification(title, message string) error {
+	const (
+		NIF_INFO        = 0x00000010
+		NIIF_USER       = 0x00000004
+		NIIF_LARGE_ICON = 0x00000020
+	)
+	wt.muNID.Lock()
+	defer wt.muNID.Unlock()
+	if wt.nid == nil || wt.hidden {
+		return errors.New("systray: the icon is not in the notification area")
+	}
+	copy(wt.nid.InfoTitle[:], fitUTF16(title, len(wt.nid.InfoTitle)))
+	copy(wt.nid.Info[:], fitUTF16(message, len(wt.nid.Info)))
+	wt.nid.InfoFlags = NIIF_USER | NIIF_LARGE_ICON
+	wt.nid.Flags |= NIF_INFO
+	err := wt.nid.modify()
+	// Later modifications -- a new icon or tooltip -- must not show it again.
+	wt.nid.Flags &^= NIF_INFO
+	return err
+}
+
 // SetVisible shows or hides the systray icon, keeping the tray and its menu
 // running. On Windows the icon is deleted from the notification area while
 // hidden, and added back, with its icon and tooltip, when visible.
