@@ -122,11 +122,12 @@ type notifyIconData struct {
 	Tip                        [128]uint16
 	State, StateMask           uint32
 	Info                       [256]uint16
-	Timeout, Version           uint32
-	InfoTitle                  [64]uint16
-	InfoFlags                  uint32
-	GuidItem                   windows.GUID
-	BalloonIcon                windows.Handle
+	// uTimeout or uVersion: a union in C, so one field here.
+	TimeoutOrVersion uint32
+	InfoTitle        [64]uint16
+	InfoFlags        uint32
+	GuidItem         windows.GUID
+	BalloonIcon      windows.Handle
 }
 
 func (nid *notifyIconData) add() error {
